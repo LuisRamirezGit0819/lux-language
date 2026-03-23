@@ -1,0 +1,16 @@
+# Ejecutable compilado
+lux
+
+# Archivos objeto intermedios de compilación
+*.o
+
+# Archivos de compilación de IDEs
+.vscode/
+.idea/
+*.user
+
+# macOS
+.DS_Store
+
+# Archivos de depuración
+*.dSYM/
