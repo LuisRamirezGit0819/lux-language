@@ -1,20 +1,67 @@
 #include <iostream>
-#include "token.h"
+#include <string>
+#include "lexer.h"
+
+// Función auxiliar: tokeniza un string e imprime todos los tokens
+void probarLexer(const std::string& descripcion, const std::string& codigo) {
+    std::cout << "------------------------------------------------------------" << std::endl;
+    std::cout << "Prueba: " << descripcion           << std::endl;
+    std::cout << "Codigo: " << codigo                << std::endl;
+    std::cout << "------------------------------------------------------------" << std::endl;
+
+    Lexer lexer(codigo);
+    std::vector<Token> tokens = lexer.tokenize();
+
+    for (int i = 0; i < (int)tokens.size(); i++) {
+        std::string tipo   = tokenTypeToString(tokens[i].type);
+        std::string lexema = tokens[i].lexeme;
+
+        while (tipo.size() < 15) tipo += " ";
+
+        std::cout << "  [" << i << "] "
+                    << tipo
+                    << " | \""  << lexema << "\""
+                    << std::endl;
+    }
+    std::cout << std::endl;
+}
 
 int main(){
+    // ── Prueba 1: asignación simple ───────────
+    probarLexer(
+        "asignacion simple",
+        "let x = 42;"
+    );
 
-   // Creamos dos tokens manualmente para probar la estructura
-    /*Token t1 = { TokenType::LET,        "let" };
-    Token t2 = { TokenType::IDENTIFIER, "x"   };
-    Token t3 = { TokenType::EQUAL,      "="   };
-    Token t4 = { TokenType::NUMBER,     "42"  };
+    // ── Prueba 2: operadores aritméticos ──────
+    probarLexer(
+        "operadores aritmeticos",
+        "2 + 3 * 4 - 1 / 2"
+    );
 
-    // Imprimimos los lexemas para verificar
-    std::cout << "Token 1: " << t1.lexeme << std::endl;
-    std::cout << "Token 2: " << t2.lexeme << std::endl;
-    std::cout << "Token 3: " << t3.lexeme << std::endl;
-    std::cout << "Token 4: " << t4.lexeme << std::endl;*/
+    // ── Prueba 3: comparaciones y lógica ─────
+    probarLexer(
+        "comparaciones",
+        "x == 5; y != 10; !true"
+    );
+
+    // ── Prueba 4: función completa ────────────
+    probarLexer(
+        "funcion completa",
+        "let suma = fn(a, b) { return a + b; };"
+    );
+
+    // ── Prueba 5: if/else ─────────────────────
+    probarLexer(
+        "if else",
+        "if (x < 10) { return true; } else { return false; }"
+    );
+
+    // ── Prueba 6: carácter ilegal ─────────────
+    probarLexer(
+        "caracter ilegal",
+        "let x = @;"
+    );
 
     return 0;
-
 }
