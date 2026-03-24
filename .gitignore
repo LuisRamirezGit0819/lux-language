@@ -1,5 +1,6 @@
 # Ejecutable compilado
-lux
+lux-language
+*.exe
 
 # Archivos objeto intermedios de compilación
 *.o
