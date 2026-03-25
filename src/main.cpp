@@ -63,5 +63,11 @@ int main(){
         "let x = @;"
     );
 
+    // ── Prueba 7: operadores de comparación extendidos ──
+    probarLexer(
+        "comparaciones con <= y >=",
+        "x <= 10; y >= 3; a < b; c > d"
+    );
+
     return 0;
 }

@@ -154,9 +154,25 @@ std::vector<Token> Lexer::tokenize(){
 
         else if (c == '/') { advance(); tokens.push_back(Token{ TokenType::SLASH,     "/" }); }
 
-        else if (c == '<') { advance(); tokens.push_back(Token{ TokenType::LESS,      "<" }); }
+        else if (c == '<') { 
+            advance(); 
+            if (currentChar() == '='){
+                advance();
+                tokens.push_back(Token{ TokenType::LESS_EQUAL,      "<=" }); 
+            } else {
+                tokens.push_back(Token{ TokenType::LESS,    "<"});
+            }
+        }
 
-        else if (c == '>') { advance(); tokens.push_back(Token{ TokenType::GREATER,   ">" }); }
+        else if (c == '>') { 
+            advance(); 
+            if (currentChar() == '='){
+                advance();
+                tokens.push_back(Token{ TokenType::GREATER_EQUAL,   ">=" }); 
+            } else {
+                tokens.push_back(Token{ TokenType::GREATER,     ">"});
+            }
+        }
 
         else if (c == '(') { advance(); tokens.push_back(Token{ TokenType::LPAREN,    "(" }); }
 

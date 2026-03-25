@@ -31,6 +31,8 @@ enum class TokenType {
     NOT_EQUAL,      // !=
     LESS,           // <
     GREATER,        // >
+    LESS_EQUAL,     // <=
+    GREATER_EQUAL,  // >=
 
     // Operador de asignación (distinto de comparación)
     EQUAL,          // =
@@ -80,6 +82,8 @@ inline std::string tokenTypeToString(TokenType type) {
         case TokenType::NOT_EQUAL:    return "NOT_EQUAL";
         case TokenType::LESS:         return "LESS";
         case TokenType::GREATER:      return "GREATER";
+        case TokenType::LESS_EQUAL:      return "LESS_EQUAL";
+        case TokenType::GREATER_EQUAL:      return "GREATER_EQUAL";
         case TokenType::EQUAL:        return "EQUAL";
         case TokenType::BANG:         return "BANG";
         case TokenType::LPAREN:       return "LPAREN";

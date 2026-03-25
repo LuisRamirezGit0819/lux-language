@@ -4,6 +4,7 @@ lux-language
 
 # Archivos objeto intermedios de compilación
 *.o
+*.out
 
 # Archivos de compilación de IDEs
 .vscode/
