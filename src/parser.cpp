@@ -164,6 +164,12 @@ NodePtr Parser::parseExpression(Precedence minima) {
         case TokenType::LPAREN:
             left = parseGroupedExpression();
             break;
+        case TokenType::IF:
+            left = parseIfExpression();
+            break;
+        case TokenType::FN:
+            left = parseFuctionLiteral();
+            break;
         default:
             errors.push_back(
                 "no se como parsear '" + currentToken().lexeme + "' como expresion"
@@ -210,10 +216,85 @@ NodePtr Parser::parseGroupedExpression() {
     return expr;
 }
 
+NodePtr Parser::parseIfExpression() {
+    if (!expect(TokenType::LPAREN)) return nullptr;
+
+    advance();
+
+    NodePtr condition = parseExpression(Precedence::LOWEST);
+    if (condition == nullptr) return nullptr;
+
+    if (!expect(TokenType::RPAREN)) return nullptr;
+
+    if (!expect(TokenType::LBRACE)) return nullptr;
+
+    auto consequence = parseBlockStatement();
+
+    std::unique_ptr<BlockStatement> alternative = nullptr;
+
+    if (peekToken().type == TokenType::ELSE) {
+        advance();
+
+        advance();
+
+        if (currentToken().type != TokenType::LBRACE) {
+            errors.push_back("esperaba '{' despues de 'else'");
+            return nullptr;
+        }
+        alternative = parseBlockStatement();
+    }
+    return std::make_unique<IfExpression>(
+        std::move(condition),
+        std::move(consequence),
+        std::move(alternative)
+    );
+}
+
+std::vector<std::string> Parser::parseFuctionParameters() {
+    std::vector<std::string> params;
+
+    if (peekToken().type == TokenType::RPAREN) {
+        advance();
+        return params;
+    }
+
+    advance();
+
+    params.push_back(currentToken().lexeme);
+
+    while (peekToken().type == TokenType::COMMA ) {
+        advance();
+        advance();
+        params.push_back(currentToken().lexeme);
+    }
+
+    if (!expect(TokenType::RPAREN)) return {};
+
+    return params;
+}
+
+NodePtr Parser::parseFuctionLiteral() {
+    if (!expect(TokenType::LPAREN)) return nullptr;
+
+    std::vector<std::string> params = parseFuctionParameters();
+
+    if (!expect(TokenType::LBRACE)) return nullptr;
+
+    auto body = parseBlockStatement();
+
+    return std::make_unique<FunctionLiteral>(
+        std::move(params), std::move(body)
+    );
+}
+
 //---------------------------------------------------
 //led: parsear un operador infix
 //---------------------------------------------------
 NodePtr Parser::parseInfixExpression(NodePtr left) {
+    if (currentToken().type == TokenType::LPAREN) {
+        return parseCallExpression(std::move(left));
+    }
+
     std::string op          = currentToken().lexeme;
     Precedence precedence = currentPrecedence();
 
@@ -222,4 +303,48 @@ NodePtr Parser::parseInfixExpression(NodePtr left) {
     NodePtr right = parseExpression(precedence);
 
     return std::make_unique<BinaryExpression>(std::move(left), std::move(op), std::move(right));
+}
+
+NodePtr Parser::parseCallExpression(NodePtr function) {
+    NodeList args;
+
+    if (peekToken().type == TokenType::RPAREN) {
+        advance();
+        return std::make_unique<CallExpression>(
+            std::move(function), std::move(args)
+        );
+    }
+
+    advance();
+    args.push_back(parseExpression(Precedence::LOWEST));
+
+    while (peekToken().type == TokenType::COMMA) {
+        advance();
+        advance();
+        args.push_back(parseExpression(Precedence::LOWEST));
+    }
+
+    if (!expect(TokenType::RPAREN)) return nullptr;
+
+    return std::make_unique<CallExpression>(
+        std::move(function), std::move(args)
+    );
+}
+
+//---------------------------------------------------
+//parseBlockStatement()
+//---------------------------------------------------
+std::unique_ptr<BlockStatement> Parser::parseBlockStatement() {
+    auto block = std::make_unique<BlockStatement>();
+
+    advance();
+
+    while (currentToken().type != TokenType::RBRACE && currentToken().type != TokenType::END_OF_FILE) {
+        NodePtr stmt = parseStatement();
+        if (stmt != nullptr) {
+            block -> statements.push_back(std::move(stmt));
+        }
+        advance();
+    }
+    return block;
 }

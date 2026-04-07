@@ -182,5 +182,104 @@ int main(){
     probarParser("prefijo negativo",       "-x;");
     probarParser("prefijo bang",           "!activo;");
 
+     // ── Módulo 5 — paso 5.6: IfExpression ───
+    std::cout << std::endl;
+    std::cout << "--------------MODULO 5 - Paso 5.6: IfExpression---------------------" << std::endl;
+
+    // Caso 1: if sin else
+    probarParser("if sin else",
+                    "if (x > 0) { return x; }");
+
+    // Caso 2: if con else
+    probarParser("if con else",
+                    "if (x > 0) { return x; } else { return 0; }");
+
+    // Caso 3: if como expresión asignada a let
+    // Demuestra que if produce un valor
+    probarParser("if como valor en let",
+                    "let resultado = if (x > 0) { x } else { 0 };");
+
+    // Caso 4: condición booleana literal
+    probarParser("if con condicion booleana",
+                    "if (true) { return 1; } else { return 0; }");
+
+    // Caso 5: if anidado — if dentro del bloque de otro if
+    probarParser("if anidado",
+                    "if (x > 0) { if (x < 10) { return x; } }");
+
+    // ── Módulo 5 — paso 5.8: FunctionLiteral ──
+    std::cout << std::endl;
+    std::cout << "MODULO 5 ---- Paso 5.8: FunctionLiteral" << std::endl;
+
+    // Caso 1: función sin parámetros
+    probarParser("fn sin parametros",
+                    "fn() { return 42; }");
+
+    // Caso 2: función con un parámetro
+    probarParser("fn con un parametro",
+                 "fn(x) { return x * 2; }");
+
+    // Caso 3: función con dos parámetros
+    probarParser("fn con dos parametros",
+                    "fn(a, b) { return a + b; }");
+
+    // Caso 4: función asignada a variable con let
+    probarParser("fn asignada a let",
+                    "let sumar = fn(a, b) { return a + b; };");
+
+    // Caso 5: función con cuerpo de varias sentencias
+    probarParser("fn con cuerpo compuesto",
+                 "fn(x) { let doble = x * 2; return doble + 1; }");
+
+    // Caso 6: función que recibe otra función como parámetro
+    probarParser("fn que recibe fn como parametro",
+                    "let aplicar = fn(f, x) { return f(x); };");
+    
+    // Caso 7: FunctionLiteral llamado directamente (IIFE)
+    probarParser("fn literal llamado directamente",
+                 "fn(x) { return x * 2; }(5);");
+
+    // Caso 8: llamada encadenada — el resultado de una llamada se llama
+    probarParser("llamadas encadenadas",
+                    "obtenerFn()(10);");
+
+    // ── Módulo 5 — paso 5.10: Prueba integradora
+    std::cout << std::endl;
+    std::cout << "MODULO 5 --- Paso 5.10: Prueba integradora del Parser"
+                << std::endl;
+
+    // ── Programa 1: valor absoluto ─────────────
+    // Función con if/else — verifica interacción
+    // entre FunctionLiteral, IfExpression y ReturnStatement
+    probarParser(
+        "Programa 1: valor absoluto",
+        "let absoluto = fn(x) {"
+        "    if (x < 0) { return -x; } else { return x; }"
+        "};"
+    );
+
+    // ── Programa 2: máximo de dos números ──────
+    // Función con if/else + llamada con argumentos literales
+    // Verifica que CallExpression funciona con el resultado
+    // de otra expresión como argumento
+    probarParser(
+        "Programa 2: maximo y llamada",
+        "let maximo = fn(a, b) {"
+        "    if (a > b) { return a; } else { return b; }"
+        "};"
+        "let resultado = maximo(10, 3);"
+    );
+
+    // ── Programa 3: fibonacci recursivo ────────
+    // Caso más complejo: función que se llama a sí misma,
+    // argumentos como expresiones, resultado de llamada
+    // usado como operando de BinaryExpression
+    probarParser(
+        "Programa 3: fibonacci recursivo",
+        "let fibonacci = fn(n) {"
+        "    if (n < 2) { return n; }"
+        "    return fibonacci(n - 1) + fibonacci(n - 2);"
+        "};"
+    );
     return 0;
 }

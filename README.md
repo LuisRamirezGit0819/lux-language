@@ -80,10 +80,53 @@ Implementa el algoritmo Pratt Parser (Top-Down Operator Precedence).
 | `parseExpression(minima)` | Algoritmo central |
 | `parseIdentifier()` / `parseNumberLiteral()` / etc. | nud |
 | `parseInfixExpression(left)` | led |
-```
 
 ---
 
-Cuando compiles y corras, deberías ver el AST impreso para cada prueba. Por ejemplo para `2 + 3 * 4;`:
+## Módulo 5 — Parser Parte 2
+ 
+| Archivo | Cambios |
+|---|---|
+| `src/parser.h` | +`parseBlockStatement()`, +`parseIfExpression()`, +`parseFunctionLiteral()`, +`parseFunctionParameters()`, +`parseCallExpression()` |
+| `src/parser.cpp` | Implementación de todos los métodos anteriores + `FN` e `IF` registrados como nud + `LPAREN` despacha a `parseCallExpression` |
+| `src/main.cpp` | Pretty-printer extendido + pruebas de cada nuevo nodo + prueba integradora |
+ 
+Completa la gramática del lenguaje Lux. El Parser ahora puede construir el AST completo de cualquier programa válido.
+ 
+### Nuevos métodos del Parser
+ 
+| Método | Tipo | Descripción |
+|---|---|---|
+| `parseBlockStatement()` | sentencia | Parsea `{ sentencias... }` — bucle hasta encontrar `}` |
+| `parseIfExpression()` | nud | Parsea `if (cond) { } else { }` — `else` opcional |
+| `parseFunctionLiteral()` | nud | Parsea `fn(params) { cuerpo }` |
+| `parseFunctionParameters()` | helper | Lee lista de nombres separados por `,` entre `()` |
+| `parseCallExpression(left)` | led | Parsea `expresión(args)` — el `(` como operador infijo |
+ 
+### Decisiones de diseño del Parser
+ 
+| Decisión | Razón |
+|---|---|
+| `if` es expresión (nud), no sentencia | Permite `let x = if (cond) { a } else { b }` |
+| `fn` es expresión (nud), no declaración | Permite funciones anónimas y funciones como valores |
+| `parseBlockStatement` termina con `currentToken = }` | El llamador necesita inspeccionar qué viene después del bloque |
+| `parseFunctionParameters` devuelve `vector<string>` | Los parámetros son solo nombres — no hace falta un nodo completo |
+| `parseCallExpression` es led via `LPAREN` | Permite `f(x)`, `fn(x){x}(5)` y `f()(x)` sin casos especiales |
+ 
+### Programas Lux completos que el Parser maneja correctamente
+ 
 ```
-((2 + (3 * 4)));
+let absoluto = fn(x) {
+    if (x < 0) { return -x; } else { return x; }
+};
+ 
+let maximo = fn(a, b) {
+    if (a > b) { return a; } else { return b; }
+};
+let resultado = maximo(10, 3);
+ 
+let fibonacci = fn(n) {
+    if (n < 2) { return n; }
+    return fibonacci(n - 1) + fibonacci(n - 2);
+};
+```

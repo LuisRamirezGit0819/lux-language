@@ -53,6 +53,8 @@ private:
     NodePtr parseReturnStatement();
     NodePtr parseExpressStatement();
 
+    std::unique_ptr<BlockStatement> parseBlockStatement();
+
     //-----Parse de expresiones (Pratt)-----------------------
     NodePtr parseExpression(Precedence minima);
     NodePtr parseGroupedExpression();
@@ -62,9 +64,14 @@ private:
     NodePtr parseNumberLiteral();
     NodePtr parseBooleanLiteral();
     NodePtr parsePrefixExpression();
+    NodePtr parseIfExpression();
+    NodePtr parseFuctionLiteral();
+    // Helper: lee la lista de nombres de parámetros entre paréntesi
+    std::vector<std::string> parseFuctionParameters();
 
     //-----led: tokens que continuan una expresion-----------------------
     NodePtr parseInfixExpression(NodePtr left);
+    NodePtr parseCallExpression(NodePtr function);
 };
 
 #endif
