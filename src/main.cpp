@@ -6,6 +6,7 @@
 #include "ast.h"
 #include "token.h"
 #include "parser.h"
+#include "environment.h"
 
 // Función auxiliar: tokeniza un string e imprime todos los tokens
 void probarLexer(const std::string& descripcion, const std::string& codigo) {
@@ -52,6 +53,204 @@ void probarParser(const std::string& descripcion, const std::string& codigo) {
         }
     } else {
         std::cout << program->toString() << std::endl;
+    }
+}
+
+// ═════════════════════════════════════════════
+// Prueba del Environment — Módulo 6
+// ═════════════════════════════════════════════
+
+// Subclase mínima de Object para poder guardar enteros en el scope.
+// Solo existe para estas pruebas — en Módulo 7 usaremos Integer real.
+struct TestInteger : public Object {
+    int value;
+    explicit TestInteger(int v) : value(v) {}
+};
+
+// Helper: recupera el valor int de un shared_ptr<Object>.
+// Hace dynamic_cast a TestInteger* y devuelve su value.
+// Si el puntero es nullptr o no es TestInteger, devuelve -1 como señal.
+int obtenerValor(std::shared_ptr<Object> obj) {
+    if (obj == nullptr) return -1;
+    auto* ti = dynamic_cast<TestInteger*>(obj.get());
+    if (ti == nullptr) return -1;
+    return ti->value;
+}
+
+void probarEnvironment() {
+    std::cout << std::endl;
+    std::cout << "---------------------------------------------------------------------------" << std::endl;
+    std::cout << "  MODULO 6 --- Prueba del Environment"       << std::endl;
+    std::cout << "---------------------------------------------------------------------------" << std::endl;
+
+    // ── Caso 1: get y set en scope global ─────
+    {
+        auto global = std::make_shared<Environment>();
+        global->set("x", std::make_shared<TestInteger>(10));
+        global->set("y", std::make_shared<TestInteger>(20));
+
+        std::cout << std::endl;
+        std::cout << "  Caso 1: get y set en scope global" << std::endl;
+        std::cout << "  x = " << obtenerValor(global->get("x"))
+                    << "  (esperado: 10)" << std::endl;
+        std::cout << "  y = " << obtenerValor(global->get("y"))
+                    << "  (esperado: 20)" << std::endl;
+        std::cout << "  z = " << obtenerValor(global->get("z"))
+                    << "  (esperado: -1, no existe)" << std::endl;
+    }
+
+    // ── Caso 2: búsqueda en cadena ────────────
+    {
+        auto global = std::make_shared<Environment>();
+        global->set("x", std::make_shared<TestInteger>(100));
+
+        auto local = Environment::createEnclosed(global);
+        local->set("a", std::make_shared<TestInteger>(5));
+
+        std::cout << std::endl;
+        std::cout << "  Caso 2: busqueda en cadena" << std::endl;
+        // 'a' está en local
+        std::cout << "  a = " << obtenerValor(local->get("a"))
+                    << "  (esperado: 5)" << std::endl;
+        // 'x' no está en local → sube a global → lo encuentra
+        std::cout << "  x = " << obtenerValor(local->get("x"))
+                    << "  (esperado: 100)" << std::endl;
+        // 'z' no existe en ningún scope
+        std::cout << "  z = " << obtenerValor(local->get("z"))
+                    << "  (esperado: -1, no existe)" << std::endl;
+    }
+
+    // ── Caso 3: shadowing ─────────────────────
+    {
+        auto global = std::make_shared<Environment>();
+        global->set("x", std::make_shared<TestInteger>(100));
+
+        auto local = Environment::createEnclosed(global);
+        local->set("x", std::make_shared<TestInteger>(999));
+
+        std::cout << std::endl;
+        std::cout << "  Caso 3: shadowing" << std::endl;
+        // local tiene su propia 'x' → la global no se toca
+        std::cout << "  x desde local  = "
+                    << obtenerValor(local->get("x"))
+                    << "  (esperado: 999)" << std::endl;
+        std::cout << "  x desde global = "
+                    << obtenerValor(global->get("x"))
+                    << "  (esperado: 100)" << std::endl;
+    }
+
+    // ── Caso 4: tres niveles de profundidad ───
+    {
+        auto S0 = std::make_shared<Environment>();
+        S0->set("x", std::make_shared<TestInteger>(10));
+        S0->set("y", std::make_shared<TestInteger>(20));
+
+        auto S1 = Environment::createEnclosed(S0);
+        S1->set("a", std::make_shared<TestInteger>(5));
+
+        auto S2 = Environment::createEnclosed(S1);
+        S2->set("b", std::make_shared<TestInteger>(3));
+
+        std::cout << std::endl;
+        std::cout << "  Caso 4: tres niveles de profundidad" << std::endl;
+        // 'b' está en S2
+        std::cout << "  b = " << obtenerValor(S2->get("b"))
+                    << "  (esperado: 3)"  << std::endl;
+        // 'a' está en S1, S2 sube un nivel
+        std::cout << "  a = " << obtenerValor(S2->get("a"))
+                    << "  (esperado: 5)"  << std::endl;
+        // 'x' está en S0, S2 sube dos niveles
+        std::cout << "  x = " << obtenerValor(S2->get("x"))
+                    << "  (esperado: 10)" << std::endl;
+        // 'z' no existe en ningún nivel
+        std::cout << "  z = " << obtenerValor(S2->get("z"))
+                    << "  (esperado: -1, no existe)" << std::endl;
+    }
+    // ── Caso 5: set() no modifica el scope padre ──
+    {
+        auto global = std::make_shared<Environment>();
+        global->set("x", std::make_shared<TestInteger>(10));
+
+        auto local = Environment::createEnclosed(global);
+        // Creamos una 'x' nueva en local — no debe tocar la del global
+        local->set("x", std::make_shared<TestInteger>(999));
+
+        std::cout << std::endl;
+        std::cout << "  Caso 5: set() no modifica el scope padre" << std::endl;
+        std::cout << "  x desde local  = "
+                    << obtenerValor(local->get("x"))
+                    << "  (esperado: 999)" << std::endl;
+        std::cout << "  x desde global = "
+                    << obtenerValor(global->get("x"))
+                    << "  (esperado: 10, sin cambios)" << std::endl;
+    }
+
+    // ── Caso 6: set() reemplaza si ya existe ──────
+    {
+        auto global = std::make_shared<Environment>();
+        global->set("x", std::make_shared<TestInteger>(10));
+        global->set("x", std::make_shared<TestInteger>(99));  // reemplaza
+
+        std::cout << std::endl;
+        std::cout << "  Caso 6: set() reemplaza si ya existe" << std::endl;
+        std::cout << "  x = " << obtenerValor(global->get("x"))
+                    << "  (esperado: 99)" << std::endl;
+    }
+
+    // ── Caso 7: scopes hermanos son independientes
+    {
+        auto global = std::make_shared<Environment>();
+        global->set("x", std::make_shared<TestInteger>(10));
+
+        auto S1 = Environment::createEnclosed(global);
+        S1->set("a", std::make_shared<TestInteger>(1));
+
+        auto S2 = Environment::createEnclosed(global);
+        S2->set("b", std::make_shared<TestInteger>(2));
+
+        std::cout << std::endl;
+        std::cout << "  Caso 7: scopes hermanos son independientes" << std::endl;
+        // S1 ve 'a' y 'x', pero no 'b'
+        std::cout << "  S1->a = " << obtenerValor(S1->get("a"))
+                    << "  (esperado: 1)"  << std::endl;
+        std::cout << "  S1->x = " << obtenerValor(S1->get("x"))
+                    << "  (esperado: 10)" << std::endl;
+        std::cout << "  S1->b = " << obtenerValor(S1->get("b"))
+                    << "  (esperado: -1, S1 no ve a S2)" << std::endl;
+        // S2 ve 'b' y 'x', pero no 'a'
+        std::cout << "  S2->b = " << obtenerValor(S2->get("b"))
+                    << "  (esperado: 2)"  << std::endl;
+        std::cout << "  S2->x = " << obtenerValor(S2->get("x"))
+                    << "  (esperado: 10)" << std::endl;
+        std::cout << "  S2->a = " << obtenerValor(S2->get("a"))
+                    << "  (esperado: -1, S2 no ve a S1)" << std::endl;
+    }
+
+    // ── Caso 8: cadena de 4 niveles ───────────────
+    {
+        auto S0 = std::make_shared<Environment>();
+        S0->set("raiz", std::make_shared<TestInteger>(0));
+
+        auto S1 = Environment::createEnclosed(S0);
+        S1->set("nivel1", std::make_shared<TestInteger>(1));
+
+        auto S2 = Environment::createEnclosed(S1);
+        S2->set("nivel2", std::make_shared<TestInteger>(2));
+
+        auto S3 = Environment::createEnclosed(S2);
+        S3->set("nivel3", std::make_shared<TestInteger>(3));
+
+        std::cout << std::endl;
+        std::cout << "  Caso 8: cadena de 4 niveles" << std::endl;
+        // S3 debe subir 3 niveles para encontrar 'raiz'
+        std::cout << "  raiz   = " << obtenerValor(S3->get("raiz"))
+                    << "  (esperado: 0, sube 3 niveles)" << std::endl;
+        std::cout << "  nivel1 = " << obtenerValor(S3->get("nivel1"))
+                    << "  (esperado: 1, sube 2 niveles)" << std::endl;
+        std::cout << "  nivel2 = " << obtenerValor(S3->get("nivel2"))
+                    << "  (esperado: 2, sube 1 nivel)"  << std::endl;
+        std::cout << "  nivel3 = " << obtenerValor(S3->get("nivel3"))
+                    << "  (esperado: 3, esta aqui mismo)" << std::endl;
     }
 }
 
@@ -281,5 +480,7 @@ int main(){
         "    return fibonacci(n - 1) + fibonacci(n - 2);"
         "};"
     );
+    //!Prueba--Environment
+    probarEnvironment();
     return 0;
 }

@@ -130,3 +130,91 @@ let fibonacci = fn(n) {
     return fibonacci(n - 1) + fibonacci(n - 2);
 };
 ```
+
+---
+
+## Módulo 6 — Entorno (Scope)
+
+| Archivo | Contenido |
+|---|---|
+| `src/object.h` | Clase base `Object` — versión mínima, se expandirá en Módulo 7 |
+| `src/environment.h` | Clase `Environment` completa con cadena de scopes |
+
+Implementa el sistema de variables del intérprete: dónde se guardan y cómo se buscan.
+
+### Diseño de `Environment`
+
+```
+Environment
+├── store_  : std::map<string, shared_ptr<Object>>   variables locales
+└── outer_  : shared_ptr<Environment>                scope padre (nullptr si global)
+```
+
+### Métodos
+
+| Método | Descripción |
+|---|---|
+| `get(name)` | Busca en el mapa local; si no está, sube al padre recursivamente. Devuelve `nullptr` si no existe en ningún scope. |
+| `set(name, value)` | Guarda en el mapa local. Nunca escribe en el padre. |
+| `createEnclosed(outer)` | Función estática. Crea un scope hijo con `outer` como padre. |
+
+### Comportamiento de la cadena de scopes
+
+```
+Scope S2 (hijo de S1)   →   Scope S1 (hijo de S0)   →   Scope S0 (global)
+    b = 3                       a = 5                       x = 10
+
+S2->get("b") → encontrado en S2 → devuelve 3
+S2->get("a") → no en S2 → sube → encontrado en S1 → devuelve 5
+S2->get("x") → no en S2 → sube → no en S1 → sube → encontrado en S0 → devuelve 10
+S2->get("z") → no en S2 → sube → no en S1 → sube → no en S0 → nullptr (no existe)
+```
+
+### Reglas de diseño
+
+| Regla | Comportamiento |
+|---|---|
+| `set` escribe solo en el scope actual | Una variable local nunca toca al padre |
+| Shadowing | Una variable local con el mismo nombre que una del padre la oculta sin modificarla |
+| Scopes hermanos | Dos hijos del mismo padre no se ven entre sí — la cadena solo va hacia arriba |
+| Scope léxico | Una función ve el scope donde fue **definida**, no donde fue **llamada** |
+
+### Por qué `shared_ptr` y no `unique_ptr`
+
+Los scopes pueden ser compartidos por los closures. Cuando una función captura
+su entorno de definición, ese scope tiene dos dueños: el intérprete que lo creó
+y la función que lo capturó. `shared_ptr` mantiene el scope vivo mientras al
+menos uno de los dos lo referencie, y lo destruye automáticamente cuando ambos
+desaparecen.
+
+### Concepto C++ nuevo: `shared_ptr`
+
+`shared_ptr<T>` es el puntero inteligente para ownership compartido.
+Mantiene un contador de referencias interno. El objeto se destruye
+automáticamente cuando el contador llega a cero (ningún `shared_ptr`
+lo referencia). A diferencia de `unique_ptr`, puede copiarse libremente.
+
+### Estructura de archivos actualizada
+
+```
+lux/
+├── src/
+│   ├── token.h
+│   ├── lexer.h
+│   ├── lexer.cpp
+│   ├── ast.h
+│   ├── parser.h
+│   ├── parser.cpp
+│   ├── object.h          ← nuevo en Módulo 6
+│   ├── environment.h     ← nuevo en Módulo 6
+│   └── main.cpp
+├── .gitignore
+└── README.md
+```
+
+---
+
+## Próximo módulo: 7 — Evaluador Parte 1
+
+El Evaluador recorrerá el AST y producirá valores usando el sistema de tipos
+(`Object` y sus subclases) y el `Environment` construido en este módulo.
