@@ -7,6 +7,7 @@
 #include "token.h"
 #include "parser.h"
 #include "environment.h"
+#include "evaluator.h"
 
 // Función auxiliar: tokeniza un string e imprime todos los tokens
 void probarLexer(const std::string& descripcion, const std::string& codigo) {
@@ -312,6 +313,98 @@ void probarSistemaDetipos() {
     }
 }
 
+// ═════════════════════════════════════════════
+// Prueba del pipeline completo — Módulo 7
+// Lexer → Parser → Evaluator → resultado
+// ═════════════════════════════════════════════
+void probarEvaluador() {
+    std::cout << std::endl;
+    std::cout << "---------------------------------------------------------------------------" << std::endl;
+    std::cout << "  MODULO 7 --- Pipeline completo"            << std::endl;
+    std::cout << "---------------------------------------------------------------------------" << std::endl;
+
+    Evaluator ev;
+
+    // Helper lambda: recibe código Lux, lo evalúa y muestra el resultado.
+    // auto: C++ deduce el tipo (en este caso una lambda — función anónima).
+    // [&ev]: captura la variable ev por referencia para usarla dentro.
+    // const std::string&: el código como referencia constante, sin copiar.
+    auto evaluar = [&ev](const std::string& descripcion,
+                            const std::string& codigo) {
+        // Crear entorno global fresco para cada prueba
+        auto env = std::make_shared<Environment>();
+
+        // Pipeline: Lexer → tokens
+        Lexer lexer(codigo);
+        auto tokens = lexer.tokenize();
+
+        // Pipeline: tokens → AST
+        Parser parser(std::move(tokens));
+        auto program = parser.parse();
+
+        // Si el parser encontró errores, los mostramos y no evaluamos
+        if (!parser.errors.empty()) {
+            std::cout << std::endl;
+            std::cout << "  [ERROR PARSER] " << descripcion << std::endl;
+            for (const auto& e : parser.errors) {
+                std::cout << "    " << e << std::endl;
+            }
+            return;
+        }
+
+        // Pipeline: AST → valor
+        auto resultado = ev.eval(program.get(), env);
+
+        // Mostrar resultado
+        std::cout << std::endl;
+        std::cout << "  " << descripcion << std::endl;
+        std::cout << "  Codigo   : " << codigo << std::endl;
+        std::cout << "  Tipo     : " << objectTypeToString(resultado->type()) << std::endl;
+        std::cout << "  Resultado: " << resultado->inspect() << std::endl;
+    };
+
+    // ── Literales simples ─────────────────────
+    evaluar("Literal entero",   "42;");
+    evaluar("Literal negativo", "-7;");
+    evaluar("Literal true",     "true;");
+    evaluar("Literal false",    "false;");
+
+    // ── Aritmética ────────────────────────────
+    evaluar("Suma",              "1 + 2;");
+    evaluar("Resta",             "10 - 3;");
+    evaluar("Multiplicacion",    "3 * 4;");
+    evaluar("Division",          "10 / 2;");
+    evaluar("Precedencia",       "1 + 2 * 3;");
+    evaluar("Parentesis",        "(1 + 2) * 3;");
+    evaluar("Expresion larga",   "2 + 3 * 4 - 1;");
+
+    // ── Prefijos ─────────────────────────────
+    evaluar("Negacion numerica", "-5;");
+    evaluar("Negacion logica",   "!true;");
+    evaluar("Doble negacion",    "!!false;");
+    evaluar("Negacion compleja", "-(3 + 4);");
+
+    // ── Comparaciones enteras → Boolean ───────
+    evaluar("Menor que (true)",   "3 < 5;");
+    evaluar("Menor que (false)",  "5 < 3;");
+    evaluar("Mayor que",          "10 > 2;");
+    evaluar("Igual (true)",       "5 == 5;");
+    evaluar("Igual (false)",      "5 == 6;");
+    evaluar("Distinto",           "4 != 5;");
+    evaluar("Menor o igual",      "3 <= 3;");
+    evaluar("Mayor o igual",      "7 >= 10;");
+
+    // ── Comparaciones booleanas ───────────────
+    evaluar("true == true",   "true == true;");
+    evaluar("true == false",  "true == false;");
+    evaluar("false != true",  "false != true;");
+
+    // ── Expresiones anidadas ──────────────────
+    evaluar("Comparacion con aritmetica", "1 + 2 == 3;");
+    evaluar("Expresion compleja",         "2 * 3 + 4 * 5;");
+}
+
+
 int main(){
     //!── Prueba del LEXER ───────
     std::cout << "------------------------------------------------------------" << std::endl;
@@ -543,5 +636,9 @@ int main(){
 
     //!Prueba-Sistema-de-Tipos
     probarSistemaDetipos();
+
+    //!Prueba-Evaluador
+    probarEvaluador();
+
     return 0;
 }

@@ -140,6 +140,7 @@ std::vector<Token> Lexer::tokenize(){
         else if (c == '!'){
             advance();
             if (currentChar() == '='){
+                advance();
                 tokens.push_back(Token{ TokenType::NOT_EQUAL, "!="});
             } else {
                 tokens.push_back(Token{ TokenType::BANG, "!"});
