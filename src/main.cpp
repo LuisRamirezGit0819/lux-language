@@ -402,6 +402,35 @@ void probarEvaluador() {
     // ── Expresiones anidadas ──────────────────
     evaluar("Comparacion con aritmetica", "1 + 2 == 3;");
     evaluar("Expresion compleja",         "2 * 3 + 4 * 5;");
+
+    std::cout << std::endl;
+    std::cout << "-------------------------------------------------------------------------" << std::endl;
+    std::cout << "MODULO 8.2 --- Identifier, LetStatement y Error" << std::endl;
+    std::cout << "-------------------------------------------------------------------------" << std::endl << std::endl;
+
+    evaluar("let simple",
+                    "let x = 5; x;");
+
+    evaluar("let con expresion",
+                    "let resultado = 3 + 4 * 2; resultado;");
+
+    evaluar("dos variables",
+                    "let a = 10; let b = 3; a + b;");
+
+    evaluar("variable no definida -> Error",
+                    "z + 1;");
+
+    evaluar("division por cero -> Error",
+                    "10 / 0;");
+
+    evaluar("tipo incorrecto en prefijo -> Error",
+                    "-true;");
+
+    evaluar("tipos incompatibles en binaria -> Error",
+                    "5 + true;");
+
+    evaluar("error se propaga (no evalua resto)",
+                    "z; 1 + 2;");
 }
 
 

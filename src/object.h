@@ -66,12 +66,26 @@ public:
     std::string inspect() const override {return "null";}
 };
 
+class Error : public Object {
+public:
+    std::string message;
+
+    explicit Error(std::string msg) : message(std::move(msg)) {}
+
+    ObjectType      type()  const override { return ObjectType::ERROR; }
+    std::string     inspect() const override { return "ERROR: " + message; }
+};
+
 inline std::shared_ptr<Boolean> LUX_TRUE = std::make_shared<Boolean>(true);
 inline std::shared_ptr<Boolean> LUX_FALSE = std::make_shared<Boolean>(false);
 inline std::shared_ptr<Null> LUX_NULL = std::make_shared<Null>();
 
 inline std::shared_ptr<Boolean> nativeBoolToObject(bool input){
     return input ? LUX_TRUE : LUX_FALSE;
+}
+
+inline bool isError(const std::shared_ptr<Object>& obj) {
+    return obj != nullptr && obj->type() == ObjectType::ERROR;
 }
 
 #endif

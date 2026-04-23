@@ -18,6 +18,8 @@ private:
     // Devuelve el valor de la última sentencia evaluada.
     std::shared_ptr<Object> evalProgram(Program* node, std::shared_ptr<Environment> env);
 
+    std::shared_ptr<Object> evalLetStatement(LetStatement* node, std::shared_ptr<Environment> env);
+
     // Evalúa un NumberLiteral: convierte el int del nodo a Integer.
     // No necesita entorno — es un valor literal, no depende de variables.
     std::shared_ptr<Object> evalNumberLiteral(NumberLiteral* node);
@@ -25,6 +27,8 @@ private:
     // Evalúa un BooleanLiteral: devuelve LUX_TRUE o LUX_FALSE.
     // No necesita entorno por la misma razón.
     std::shared_ptr<Object> evalBooleanLiteral(BooleanLiteral* node);
+
+    std::shared_ptr<Object> evalIdentifier(Identifier* node, std::shared_ptr<Environment> env);
 
     // Evalúa una PrefixExpression: primero evalúa el operando,
     // luego aplica el operador (- o !).
