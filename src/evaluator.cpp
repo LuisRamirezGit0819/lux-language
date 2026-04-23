@@ -13,6 +13,10 @@ std::shared_ptr<Object> Evaluator::eval(Node* node, std::shared_ptr<Environment>
         return eval(n->expression.get(), env);
     }
 
+    if (auto* n = dynamic_cast<BlockStatement*>(node)) {
+        return evalBlockStatement(n, env);
+    }
+
     if (auto* n = dynamic_cast<LetStatement*>(node)) {
         return evalLetStatement(n, env);
     }
@@ -38,10 +42,26 @@ std::shared_ptr<Object> Evaluator::eval(Node* node, std::shared_ptr<Environment>
         return evalBinaryExpression(n, env);
     }
 
+    if (auto* n = dynamic_cast<IfExpression*>(node)) {
+        return evalIfExpression(n, env);
+    }
+
     return LUX_NULL;
 }
 
 std::shared_ptr<Object> Evaluator::evalProgram(Program* node, std::shared_ptr<Environment> env) {
+
+    std::shared_ptr<Object> result = LUX_NULL;
+
+    for (const auto& stmt : node->statements) {
+        result = eval(stmt.get(), env);
+        if (isError(result)) return result;
+    }
+
+    return result;
+}
+
+std::shared_ptr<Object> Evaluator::evalBlockStatement(BlockStatement* node, std::shared_ptr<Environment> env) {
 
     std::shared_ptr<Object> result = LUX_NULL;
 
@@ -79,6 +99,20 @@ std::shared_ptr<Object> Evaluator::evalNumberLiteral(NumberLiteral* node) {
 
 std::shared_ptr<Object> Evaluator::evalBooleanLiteral(BooleanLiteral* node) {
     return nativeBoolToObject(node->value);
+}
+
+std::shared_ptr<Object> Evaluator::evalIfExpression(IfExpression* node, std::shared_ptr<Environment> env) {
+    auto condVal = eval(node->condition.get(), env);
+
+    if (isError(condVal)) return condVal;
+
+    if (isTruthy(condVal)) {
+        return eval(node->consequence.get(), env);
+    } else if (node->alternative != nullptr) {
+        return eval(node->alternative.get(), env);
+    } else {
+        return LUX_NULL;
+    }
 }
 
 std::shared_ptr<Object> Evaluator::evalPrefixExpression(PrefixExpression* node, std::shared_ptr<Environment> env) {

@@ -18,6 +18,8 @@ private:
     // Devuelve el valor de la última sentencia evaluada.
     std::shared_ptr<Object> evalProgram(Program* node, std::shared_ptr<Environment> env);
 
+    std::shared_ptr<Object> evalBlockStatement(BlockStatement* node, std::shared_ptr<Environment> env);
+
     std::shared_ptr<Object> evalLetStatement(LetStatement* node, std::shared_ptr<Environment> env);
 
     // Evalúa un NumberLiteral: convierte el int del nodo a Integer.
@@ -37,6 +39,8 @@ private:
     // Evalúa una BinaryExpression: evalúa izquierda y derecha,
     // luego aplica el operador.
     std::shared_ptr<Object> evalBinaryExpression(BinaryExpression* node, std::shared_ptr<Environment> env);
+
+    std::shared_ptr<Object> evalIfExpression(IfExpression* node, std::shared_ptr<Environment> env);
 
     // ── Helpers de operadores ─────────────────
 

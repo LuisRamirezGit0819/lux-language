@@ -431,6 +431,54 @@ void probarEvaluador() {
 
     evaluar("error se propaga (no evalua resto)",
                     "z; 1 + 2;");
+
+    std::cout << std::endl;
+    std::cout << "-------------------------------------------------------------------------" << std::endl;
+    std::cout << "MODULO 8.3/8.4 --- BlockStatement e If" << std::endl;
+    std::cout << "-------------------------------------------------------------------------" << std::endl << std::endl;
+
+    // Bloque sin else — condición verdadera
+    evaluar("if true devuelve valor del bloque",
+            "if (true) { let x = 5; x; }");
+
+    // Bloque sin else — condición falsa, sin alternative → null
+    evaluar("if false sin else devuelve null",
+            "if (false) { 999; }");
+
+    // if/else con condición verdadera
+    evaluar("if true con else",
+            "if (true) { 10; } else { 20; }");
+
+    // if/else con condición falsa
+    evaluar("if false con else",
+            "if (false) { 10; } else { 20; }");
+
+    // Condición es una comparación
+    evaluar("condicion aritmetica verdadera",
+            "if (3 > 1) { 42; } else { 0; }");
+
+    evaluar("condicion aritmetica falsa",
+            "if (3 < 1) { 42; } else { 0; }");
+
+    // if como valor asignado a variable
+    evaluar("if como valor en let",
+            "let x = 5; let resultado = if (x > 3) { 100; } else { 0; }; resultado;");
+
+    // Bloque con varias sentencias — devuelve la última
+    evaluar("bloque devuelve ultima sentencia",
+            "if (true) { let a = 3; let b = 4; a + b; }");
+
+    // Error en la condición se propaga
+    evaluar("error en condicion se propaga",
+            "if (z > 0) { 1; } else { 2; }");
+
+    // Error dentro del bloque se propaga
+    evaluar("error dentro del bloque",
+            "if (true) { z; 99; }");
+
+    // if anidado
+    evaluar("if anidado",
+            "let x = 5; if (x > 0) { if (x > 3) { 1; } else { 2; } } else { 0; }");
 }
 
 

@@ -88,4 +88,11 @@ inline bool isError(const std::shared_ptr<Object>& obj) {
     return obj != nullptr && obj->type() == ObjectType::ERROR;
 }
 
+inline bool isTruthy (const std::shared_ptr<Object>& obj) {
+    if (obj == LUX_NULL) return false;
+    if (obj == LUX_TRUE) return true;
+    if (obj == LUX_FALSE) return false;
+    return true;
+}
+
 #endif
