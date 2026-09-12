@@ -8,7 +8,6 @@ std::shared_ptr<Object> Evaluator::eval(Node* node, std::shared_ptr<Environment>
     }
 
     //-------------Sentencias-----------------
-    //ExpressionStatement
     if (auto* n = dynamic_cast<ExpressionStatement*>(node)) {
         return eval(n->expression.get(), env);
     }
@@ -19,6 +18,10 @@ std::shared_ptr<Object> Evaluator::eval(Node* node, std::shared_ptr<Environment>
 
     if (auto* n = dynamic_cast<LetStatement*>(node)) {
         return evalLetStatement(n, env);
+    }
+
+    if (auto* n = dynamic_cast<ReturnStatement*>(node)) {
+        return evalReturnStatement(n, env);
     }
 
     if (auto* n = dynamic_cast<Identifier*>(node)) {
@@ -56,6 +59,10 @@ std::shared_ptr<Object> Evaluator::evalProgram(Program* node, std::shared_ptr<En
     for (const auto& stmt : node->statements) {
         result = eval(stmt.get(), env);
         if (isError(result)) return result;
+        if (result != nullptr && result->type() == ObjectType::RETURN_VALUE) {
+            auto* rv = dynamic_cast<ReturnValue*>(result.get());
+            return rv->value;
+        }
     }
 
     return result;
@@ -68,6 +75,9 @@ std::shared_ptr<Object> Evaluator::evalBlockStatement(BlockStatement* node, std:
     for (const auto& stmt : node->statements) {
         result = eval(stmt.get(), env);
         if (isError(result)) return result;
+        if (result != nullptr && result->type() == ObjectType::RETURN_VALUE) {
+            return result;
+        }
     }
 
     return result;
@@ -81,7 +91,16 @@ std::shared_ptr<Object> Evaluator::evalLetStatement(LetStatement* node, std::sha
 
     env->set(node->name, val);
 
-    return LUX_TRUE;
+    return LUX_NULL;
+}
+
+std::shared_ptr<Object> Evaluator::evalReturnStatement(ReturnStatement* node, std::shared_ptr<Environment> env){
+
+    auto val = eval(node->value.get(), env);
+
+    if (isError(val)) return val;
+
+    return std::make_shared<ReturnValue>(val);
 }
 
 std::shared_ptr<Object> Evaluator::evalIdentifier(Identifier* node, std::shared_ptr<Environment> env) {

@@ -22,6 +22,10 @@ private:
 
     std::shared_ptr<Object> evalLetStatement(LetStatement* node, std::shared_ptr<Environment> env);
 
+    // evalReturnStatement
+    // Evalúa la expresión de "return expr;" y la envuelve en ReturnValue.
+    std::shared_ptr<Object> evalReturnStatement(ReturnStatement* node, std::shared_ptr<Environment> env);
+
     // Evalúa un NumberLiteral: convierte el int del nodo a Integer.
     // No necesita entorno — es un valor literal, no depende de variables.
     std::shared_ptr<Object> evalNumberLiteral(NumberLiteral* node);

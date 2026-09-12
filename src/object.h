@@ -76,6 +76,16 @@ public:
     std::string     inspect() const override { return "ERROR: " + message; }
 };
 
+class ReturnValue : public Object {
+public:
+    std::shared_ptr<Object> value;
+
+    explicit ReturnValue(std::shared_ptr<Object> v) : value(std::move(v)) {}
+
+    ObjectType   type()   const override { return ObjectType::RETURN_VALUE; }
+    std::string inspect() const override { return value->inspect(); }
+};
+
 inline std::shared_ptr<Boolean> LUX_TRUE = std::make_shared<Boolean>(true);
 inline std::shared_ptr<Boolean> LUX_FALSE = std::make_shared<Boolean>(false);
 inline std::shared_ptr<Null> LUX_NULL = std::make_shared<Null>();

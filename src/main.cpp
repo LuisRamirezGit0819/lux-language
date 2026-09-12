@@ -479,6 +479,27 @@ void probarEvaluador() {
     // if anidado
     evaluar("if anidado",
             "let x = 5; if (x > 0) { if (x > 3) { 1; } else { 2; } } else { 0; }");
+    
+    std::cout << "-------------------------------------------------------------------------" << std::endl;
+    std::cout << "  MODULO 8.5 --- ReturnValue y ReturnStatement" << std::endl;
+    std::cout << "-------------------------------------------------------------------------" << std::endl << std::endl;
+
+    evaluar("return literal en nivel raiz",        "return 42;");
+    evaluar("return de una expresion",             "return 3 + 4;");
+    evaluar("return dentro de if true",            "if (true) { return 5; }");
+    evaluar("return dentro de if false sin else",  "if (false) { return 5; }");
+    evaluar("return detiene ejecucion del bloque", "if (true) { return 1; let x = 999; x; }");
+    evaluar("return en la rama then",              "if (true) { return 1; } else { return 2; }");
+    evaluar("return en la rama else",              "if (false) { return 1; } else { return 2; }");
+    evaluar("return anidado (patron factorial, caso base)",
+            "let n = 0; if (n == 0) { return 1; } return 999;");
+    evaluar("return anidado (rama no-cero)",
+            "let n = 5; if (n == 0) { return 1; } return n * 2;");
+    evaluar("error dentro de return se propaga",  "return z + 1;");
+    evaluar("return en if anidado dos niveles",
+            "let x = 5; if (x > 0) { if (x > 3) { return 100; } return 0; } return -1;");
+    evaluar("varios statements antes del return",
+            "let a = 10; let b = 20; let c = a + b; return c;");
 }
 
 

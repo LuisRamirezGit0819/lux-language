@@ -368,8 +368,178 @@ lux/
 
 ---
 
-## Próximo módulo: 8 — Evaluador Parte 2
+## Módulo 8 — Evaluador Parte 2
+ 
+| Archivo | Contenido |
+|---|---|
+| `src/object.h` | + `ObjectType::ERROR`, `ObjectType::RETURN_VALUE`, `ObjectType::FUNCTION` (adelantado) — clases `Error` y `ReturnValue` — helpers `isError()`, `isTruthy()` |
+| `src/evaluator.h` | + `evalLetStatement`, `evalIdentifier`, `evalBlockStatement`, `evalIfExpression`, `evalReturnStatement` |
+| `src/evaluator.cpp` | Implementación completa de los métodos anteriores + propagación de `Error`/`ReturnValue` en todo el evaluador |
+| `src/main.cpp` | Pruebas acumuladas de M8.2 a M8.5 |
+ 
+Con este módulo, Lux puede ejecutar programas reales con variables, condicionales
+y retornos — todo lo necesario antes de implementar funciones (Módulo 9).
+ 
+### 8.1 — Teoría general
+ 
+El evaluador pasa de manejar solo expresiones aisladas a ejecutar **programas
+con estado**: variables que persisten en el `Environment`, bloques que se
+detienen ante errores o retornos, y condicionales que eligen una rama según
+una regla de "verdad" (`isTruthy`).
+ 
+### 8.2 — Identifier, LetStatement y el objeto Error
+ 
+`evalIdentifier` busca el nombre en el entorno (`env->get()`, que sube por la
+cadena de scopes). Si no existe, devuelve un objeto `Error` en vez de fallar
+en silencio:
+ 
+```cpp
+std::shared_ptr<Object> Evaluator::evalIdentifier(Identifier* node, std::shared_ptr<Environment> env) {
+    auto val = env->get(node->name);
+    if (val != nullptr) return val;
+    return std::make_shared<Error>("variable no definida: " + node->name);
+}
+```
+ 
+`evalLetStatement` evalúa el lado derecho, lo guarda en el entorno, y devuelve
+`LUX_NULL` — porque `let` es una **sentencia**, no produce un valor visible
+(igual que en Python, `x = 5` no vale nada).
+ 
+`Error` es un objeto que viaja igual que cualquier otro valor, pero cada
+función del evaluador lo detecta con `isError()` y lo propaga sin procesarlo
+más — así un error de tipo o una variable indefinida no produce basura, sino
+un mensaje claro que sube hasta `main()`.
+ 
+### 8.3 — BlockStatement
+ 
+`evalBlockStatement` recorre las sentencias de un bloque `{ ... }` en orden y
+devuelve el valor de la última. Se detiene inmediatamente si alguna sentencia
+produce un `Error`.
+ 
+Importante: en Lux, un bloque `{ }` **solo es válido como cuerpo de `if` o
+`fn`** — nunca como sentencia suelta de nivel superior. El parser lo rechaza
+correctamente. Por eso todas las pruebas de bloques usan `if (true) { ... }`
+como contenedor.
+ 
+### 8.4 — IfExpression e isTruthy
+ 
+`isTruthy()` define las reglas de verdad de Lux:
+ 
+| Valor | ¿Truthy? |
+|---|---|
+| `Boolean{true}` | sí |
+| `Boolean{false}` | no |
+| `Null` | no |
+| `Integer` (cualquier valor) | sí |
+ 
+`evalIfExpression` evalúa la condición, propaga `Error` si lo hay, y elige
+la rama `consequence` o `alternative` según `isTruthy()`. El resultado del
+`if` es el resultado del bloque ejecutado — eso permite usar `if` como
+expresión: `let x = if (cond) { 5 } else { 0 };`.
+ 
+### 8.5 — ReturnValue y ReturnStatement
+ 
+Este es el paso que cierra el módulo. El problema central: un `return`
+puede ocurrir dentro de varios niveles de anidamiento (`if` dentro de
+`fn`, bloques dentro de `if`), y su valor debe atravesar todos esos
+niveles sin ser interceptado como si fuera el resultado normal de cada uno.
+ 
+**Solución: el patrón wrapper object.** `ReturnValue` envuelve el valor real:
+ 
+```cpp
+class ReturnValue : public Object {
+public:
+    std::shared_ptr<Object> value;
+    explicit ReturnValue(std::shared_ptr<Object> v) : value(std::move(v)) {}
+    ObjectType  type()    const override { return ObjectType::RETURN_VALUE; }
+    std::string inspect() const override { return value->inspect(); }
+};
+```
+ 
+`evalReturnStatement` evalúa la expresión y la envuelve:
+ 
+```cpp
+std::shared_ptr<Object> Evaluator::evalReturnStatement(ReturnStatement* node, std::shared_ptr<Environment> env) {
+    auto val = eval(node->value.get(), env);
+    if (isError(val)) return val;
+    return std::make_shared<ReturnValue>(val);
+}
+```
+ 
+**La regla de oro de la propagación:**
+ 
+| Nivel | ¿Abre el ReturnValue? |
+|---|---|
+| `evalBlockStatement` | **No** — lo propaga intacto, detiene el bloque |
+| `evalIfExpression` | No necesita lógica especial — simplemente retorna lo que evalúa el bloque, sea o no un ReturnValue |
+| `evalProgram` | **Sí** — es el nivel raíz, no hay nadie más arriba |
+| `evalCallExpression` (Módulo 9) | **Sí** — será el otro lugar legítimo que abre la cápsula |
+ 
+```cpp
+// evalBlockStatement — propaga sin abrir
+if (result != nullptr && result->type() == ObjectType::RETURN_VALUE) {
+    return result;
+}
+ 
+// evalProgram — abre (unwrap)
+if (result != nullptr && result->type() == ObjectType::RETURN_VALUE) {
+    auto* rv = dynamic_cast<ReturnValue*>(result.get());
+    return rv->value;
+}
+```
+ 
+Verificado con el caso central: `if (true) { return 1; let x = 999; x; }`
+devuelve `1` — las sentencias después del `return` nunca se ejecutan.
+ 
+### Corrección aplicada en 8.5: bug en evalLetStatement
+ 
+Se encontró que `evalLetStatement` devolvía `LUX_TRUE` en vez de `LUX_NULL`.
+Esto no afectaba la mayoría de los programas (porque el valor de `let` casi
+nunca es la última sentencia relevante), pero rompía la semántica: un bloque
+que terminara en `let x = 5;` devolvía `true` en vez de `null`. Corregido:
+ 
+```cpp
+// Antes (bug):
+return LUX_TRUE;
 
-Evaluar variables (`Identifier`), declaraciones (`LetStatement`),
-condicionales (`IfStatement`), bloques (`BlockStatement`) y retornos (`ReturnStatement`).
-Al terminar, Lux podrá ejecutar programas reales con variables y lógica condicional.
+// Ahora (correcto):
+return LUX_NULL;
+```
+
+También se corrigió un typo de ortografía (`"operrador"` → `"operador"`) en
+los mensajes de error de `evalPrefixExpression`.
+
+### Sistema de tipos al final del Módulo 8
+
+```
+Object
+├── Integer
+├── Boolean
+├── Null
+├── Error          ← Módulo 8
+└── ReturnValue    ← Módulo 8.5 (wrapper, no tiene lógica propia)
+```
+
+`ObjectType::FUNCTION` ya existe en el enum, preparado para el Módulo 9.
+
+### Resultados verificados (extracto)
+
+```
+let x = 5; x;                                    → INTEGER : 5
+z + 1;                                           → ERROR   : variable no definida: z
+if (true) { let a=3; let b=4; a+b; }             → INTEGER : 7
+if (false) { 10; } else { 20; }                  → INTEGER : 20
+if (true) { return 1; let x=999; x; }            → INTEGER : 1   (detiene tras el return)
+let n=0; if (n==0) { return 1; } return 999;     → INTEGER : 1   (patron factorial, caso base)
+let n=5; if (n==0) { return 1; } return n*2;     → INTEGER : 10
+```
+
+### Estado del Evaluador al final del Módulo 8
+
+Evalúa: `NumberLiteral`, `BooleanLiteral`, `Identifier`, `LetStatement`,
+`ReturnStatement`, `BlockStatement`, `IfExpression`, `PrefixExpression`,
+`BinaryExpression`, `ExpressionStatement`, `Program`.
+
+NO evalúa todavía: `FunctionLiteral`, `CallExpression` (Módulo 9).
+
+---
